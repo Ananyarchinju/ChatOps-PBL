@@ -1,0 +1,33 @@
+{
+  "title": "ChatOps System Metrics",
+  "uid": "chatops-dashboard",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Node.js CPU Usage",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "process_cpu_user_seconds_total", "legendFormat": "CPU User" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Node.js Memory Usage",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        { "expr": "nodejs_heap_space_size_used_bytes", "legendFormat": "Heap Used" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Total Chat Commands Executed",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "sum(chatops_commands_total)", "legendFormat": "Commands" }
+      ]
+    }
+  ],
+  "schemaVersion": 30,
+  "timezone": "browser",
+  "refresh": "5s"
+}
