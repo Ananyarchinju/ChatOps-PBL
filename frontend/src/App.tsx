@@ -5,7 +5,7 @@ import Dashboard from './pages/Dashboard';
 import ChatBot from './pages/ChatBot';
 import JenkinsPanel from './pages/JenkinsPanel';
 import DockerPanel from './pages/DockerPanel';
-import Monitoring from './pages/Monitoring';
+import MonitoringPanel from './pages/MonitoringPanel';
 import Logs from './pages/Logs';
 import Settings from './pages/Settings';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -50,7 +50,7 @@ function App() {
                 <DockerPanel />
               </ProtectedRoute>
             } />
-            <Route path="monitoring" element={<Monitoring />} />
+            <Route path="monitoring" element={<MonitoringPanel />} />
             <Route path="logs" element={<Logs />} />
             <Route path="settings" element={
               <ProtectedRoute requireAdmin>

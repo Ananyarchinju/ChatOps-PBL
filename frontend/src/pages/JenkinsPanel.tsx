@@ -1,15 +1,29 @@
-import { Play, CheckCircle2, XCircle, Clock, Search, Filter } from 'lucide-react';
+import { Play, CheckCircle2, XCircle, Clock, Search, Filter, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-const builds = [
-  { id: '#1025', job: 'frontend-app-prod', status: 'running', duration: '2m 15s', branch: 'main' },
-  { id: '#1024', job: 'backend-api-staging', status: 'success', duration: '4m 30s', branch: 'develop' },
-  { id: '#1023', job: 'payment-service-tests', status: 'failed', duration: '1m 12s', branch: 'feature/stripe' },
-  { id: '#1022', job: 'database-migrations', status: 'success', duration: '45s', branch: 'main' },
-  { id: '#1021', job: 'frontend-app-prod', status: 'success', duration: '5m 02s', branch: 'main' },
-];
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function JenkinsPanel() {
+  const [builds, setBuilds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get('http://localhost:3000/api/jenkins/jobs', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setBuilds(res.data);
+      } catch (err) {
+        console.error("Failed to fetch Jenkins jobs", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJobs();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -43,47 +57,43 @@ export default function JenkinsPanel() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-900/80 border-b border-slate-800 text-slate-400 text-sm">
-                <th className="py-4 px-6 font-medium">Build ID</th>
                 <th className="py-4 px-6 font-medium">Job Name</th>
-                <th className="py-4 px-6 font-medium">Branch</th>
                 <th className="py-4 px-6 font-medium">Status</th>
-                <th className="py-4 px-6 font-medium">Duration</th>
                 <th className="py-4 px-6 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {builds.map((build, idx) => (
+              {loading ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-slate-400">Loading jobs from Jenkins...</td>
+                </tr>
+              ) : builds.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-slate-400">No jobs found or Jenkins is disconnected.</td>
+                </tr>
+              ) : builds.map((build, idx) => (
                 <motion.tr 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  key={build.id} 
+                  key={build.name} 
                   className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors group"
                 >
-                  <td className="py-4 px-6 font-medium text-slate-300">{build.id}</td>
-                  <td className="py-4 px-6 text-slate-200">{build.job}</td>
-                  <td className="py-4 px-6">
-                    <span className="bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded-md border border-slate-700 font-mono">
-                      {build.branch}
-                    </span>
-                  </td>
+                  <td className="py-4 px-6 font-medium text-slate-200">{build.name}</td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
                       {build.status === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
                       {build.status === 'failed' && <XCircle className="w-5 h-5 text-red-400" />}
-                      {build.status === 'running' && <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin ml-0.5" />}
+                      {build.status === 'building' && <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin ml-0.5" />}
                       <span className="capitalize text-sm font-medium">
                         {build.status}
                       </span>
                     </div>
                   </td>
-                  <td className="py-4 px-6 text-slate-400 flex items-center gap-1">
-                    <Clock className="w-4 h-4" /> {build.duration}
-                  </td>
                   <td className="py-4 px-6 text-right">
-                    <button className="text-blue-400 hover:text-blue-300 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                      View Logs
-                    </button>
+                    <a href={build.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-end gap-1 text-blue-400 hover:text-blue-300 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                      Open in Jenkins <ExternalLink className="w-4 h-4" />
+                    </a>
                   </td>
                 </motion.tr>
               ))}

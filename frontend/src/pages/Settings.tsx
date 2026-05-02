@@ -1,8 +1,16 @@
+import { useState } from 'react';
 import { Bell, Moon, Sun, Shield, Key } from 'lucide-react';
 
 export default function Settings() {
+  const [darkMode, setDarkMode] = useState(true);
+  const [pushNotif, setPushNotif] = useState(true);
+
+  const handleUpdate = () => {
+    alert("Settings updated successfully!");
+  };
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       <div>
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-slate-400 mt-1">Manage application preferences and security</p>
@@ -23,7 +31,7 @@ export default function Settings() {
                 <Shield className="w-3.5 h-3.5" /> Administrator
               </div>
             </div>
-            <button className="ml-auto bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors border border-slate-700">
+            <button onClick={handleUpdate} className="ml-auto bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors border border-slate-700">
               Edit Profile
             </button>
           </div>
@@ -43,8 +51,11 @@ export default function Settings() {
                   <p className="text-slate-400 text-sm">Use dark theme across the application</p>
                 </div>
               </div>
-              <div className="w-12 h-6 bg-blue-500 rounded-full relative cursor-pointer">
-                <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm" />
+              <div 
+                onClick={() => setDarkMode(!darkMode)}
+                className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${darkMode ? 'bg-blue-500' : 'bg-slate-700'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 shadow-sm transition-transform ${darkMode ? 'right-0.5' : 'left-0.5'}`} />
               </div>
             </div>
 
@@ -58,8 +69,11 @@ export default function Settings() {
                   <p className="text-slate-400 text-sm">Receive alerts for failed builds and offline servers</p>
                 </div>
               </div>
-              <div className="w-12 h-6 bg-blue-500 rounded-full relative cursor-pointer">
-                <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm" />
+              <div 
+                onClick={() => setPushNotif(!pushNotif)}
+                className={`w-12 h-6 rounded-full relative cursor-pointer transition-colors ${pushNotif ? 'bg-blue-500' : 'bg-slate-700'}`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 shadow-sm transition-transform ${pushNotif ? 'right-0.5' : 'left-0.5'}`} />
               </div>
             </div>
           </div>
@@ -79,7 +93,7 @@ export default function Settings() {
                   <p className="text-slate-400 text-sm font-mono mt-1">************************</p>
                 </div>
               </div>
-              <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">Update</button>
+              <button onClick={handleUpdate} className="text-blue-400 hover:text-blue-300 text-sm font-medium">Update</button>
             </div>
             <div className="flex items-center justify-between p-4 rounded-xl border border-slate-800 bg-slate-900/50">
               <div className="flex items-center gap-4">
@@ -91,7 +105,7 @@ export default function Settings() {
                   <p className="text-slate-400 text-sm font-mono mt-1">unix:///var/run/docker.sock</p>
                 </div>
               </div>
-              <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">Update</button>
+              <button onClick={handleUpdate} className="text-blue-400 hover:text-blue-300 text-sm font-medium">Update</button>
             </div>
           </div>
         </section>

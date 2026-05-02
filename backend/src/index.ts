@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
 import metricsRoutes from './routes/metrics';
 import dockerRoutes from './routes/docker';
+import jenkinsRoutes from './routes/jenkins';
 import { prisma } from './db';
 import bcrypt from 'bcryptjs';
 import { startSlackBot } from './slack';
@@ -19,8 +20,9 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
-app.use('/api/metrics', metricsRoutes);
 app.use('/api/docker', dockerRoutes);
+app.use('/api/metrics', metricsRoutes);
+app.use('/api/jenkins', jenkinsRoutes);
 
 app.get('/api/status', (req, res) => {
   res.json({ status: 'Online', version: '1.0.0' });

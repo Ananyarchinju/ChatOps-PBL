@@ -77,6 +77,38 @@ export class JenkinsService {
       throw new Error(`Failed to trigger Jenkins build: ${error.message}`);
     }
   }
+
+  /**
+   * Fetches the list of jobs from Jenkins.
+   */
+  public async getJobs(): Promise<any[]> {
+    if (!this.url || !this.user || !this.token) {
+      return []; // Return empty if not configured
+    }
+
+    try {
+      const response = await axios.get(`${this.url}/api/json?tree=jobs[name,url,color]`, {
+        headers: {
+          'Authorization': this.authHeader
+        }
+      });
+      
+      if (response.data && response.data.jobs) {
+        return response.data.jobs.map((job: any) => ({
+          name: job.name,
+          url: job.url,
+          // Convert Jenkins color code to a standardized status
+          status: job.color === 'blue' ? 'success' : 
+                  job.color === 'red' ? 'failed' : 
+                  job.color?.includes('anime') ? 'building' : 'aborted'
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch Jenkins jobs", error);
+      return [];
+    }
+  }
 }
 
 export const jenkinsService = new JenkinsService();

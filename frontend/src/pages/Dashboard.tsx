@@ -1,18 +1,54 @@
-import { Activity, Container, GitPullRequest, Server, ShieldAlert } from 'lucide-react';
+import { Activity, Container, GitPullRequest, Server, ShieldAlert, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-
-const stats = [
-  { label: 'Total Builds', value: '1,284', icon: GitPullRequest, color: 'text-blue-400', bg: 'bg-blue-400/10', adminOnly: false },
-  { label: 'Deployments', value: '432', icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10', adminOnly: false },
-  { label: 'Active Containers', value: '28', icon: Container, color: 'text-purple-400', bg: 'bg-purple-400/10', adminOnly: false },
-  { label: 'Failed Jobs', value: '3', icon: ShieldAlert, color: 'text-red-400', bg: 'bg-red-400/10', adminOnly: false },
-  { label: 'Online Servers', value: '12', icon: Server, color: 'text-indigo-400', bg: 'bg-indigo-400/10', adminOnly: true },
-];
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const [containersCount, setContainersCount] = useState<number | string>('...');
+  const [commandsCount, setCommandsCount] = useState<number | string>('...');
+  const [recentCommands, setRecentCommands] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchRealData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+        
+        // Fetch real docker containers
+        if (isAdmin) {
+          const dockerRes = await axios.get('http://localhost:3000/api/docker/containers', { headers });
+          setContainersCount(dockerRes.data.length);
+        }
+
+        // Fetch user's real command history
+        const historyRes = await axios.get('http://localhost:3000/api/chat/history', { headers });
+        const allMessages = historyRes.data;
+        // Filter out bot responses to just show user commands
+        const userCommands = allMessages.filter((msg: any) => msg.role === 'user');
+        setCommandsCount(userCommands.length);
+        
+        // Get the 4 most recent commands for the activity feed
+        setRecentCommands(userCommands.slice(0, 4));
+
+      } catch (error) {
+        console.error("Failed to fetch dashboard data");
+        setContainersCount('0');
+        setCommandsCount('0');
+      }
+    };
+    fetchRealData();
+  }, [isAdmin]);
+
+  const stats = [
+    { label: 'Commands Executed', value: commandsCount, icon: MessageSquare, color: 'text-blue-400', bg: 'bg-blue-400/10', adminOnly: false },
+    { label: 'Active Containers', value: containersCount, icon: Container, color: 'text-purple-400', bg: 'bg-purple-400/10', adminOnly: true },
+    { label: 'Deployments', value: 'Coming Soon', icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10', adminOnly: false },
+    { label: 'Online Servers', value: '1', icon: Server, color: 'text-indigo-400', bg: 'bg-indigo-400/10', adminOnly: true },
+  ];
+
   const visibleStats = stats.filter(s => !s.adminOnly || isAdmin);
 
   return (
@@ -28,7 +64,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {visibleStats.map((stat, idx) => (
           <motion.div
             key={stat.label}
@@ -51,22 +87,16 @@ export default function Dashboard() {
 
       <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : ''} gap-6 mt-8`}>
         <div className="glass-panel rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+          <h2 className="text-xl font-semibold mb-4">Recent Commands</h2>
           <div className="space-y-4">
-            {[
-              { text: 'Frontend build #1024 successful', time: '2m ago', status: 'success' },
-              { text: 'Deployed api-service to production', time: '15m ago', status: 'success' },
-              { text: 'Backend tests failed on branch feature/auth', time: '1h ago', status: 'error' },
-              { text: 'Restarted database container', time: '3h ago', status: 'info' },
-            ].map((activity, idx) => (
+            {recentCommands.length === 0 ? (
+              <p className="text-slate-400 text-sm">No commands executed yet. Go to ChatOps to start!</p>
+            ) : recentCommands.map((activity, idx) => (
               <div key={idx} className="flex items-center gap-4 p-3 hover:bg-slate-800/50 rounded-xl transition-colors">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.status === 'success' ? 'bg-emerald-400' :
-                  activity.status === 'error' ? 'bg-red-400' : 'bg-blue-400'
-                }`} />
+                <div className="w-2 h-2 rounded-full bg-blue-400" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{activity.text}</p>
-                  <p className="text-xs text-slate-400">{activity.time}</p>
+                  <p className="text-sm font-medium font-mono">{activity.content}</p>
+                  <p className="text-xs text-slate-400">{new Date(activity.createdAt).toLocaleString()}</p>
                 </div>
               </div>
             ))}
