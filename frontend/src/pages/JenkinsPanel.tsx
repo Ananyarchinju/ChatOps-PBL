@@ -10,7 +10,7 @@ export default function JenkinsPanel() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('chatops_token');
         const res = await axios.get('http://localhost:3000/api/jenkins/jobs', {
           headers: { Authorization: `Bearer ${token}` }
         });

@@ -1,27 +1,32 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Terminal, Lock, Mail, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { Terminal, Lock, Mail, ChevronRight, Eye, EyeOff, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-export default function Login() {
+export default function Signup() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3000/api/auth/login', { email, password });
+      const res = await axios.post('http://localhost:3000/api/auth/register', { name, email, password });
       login(res.data.token, res.data.user);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || 'Registration failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,12 +47,27 @@ export default function Login() {
               <Terminal className="w-8 h-8 text-blue-400" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-              ChatOps
+              Create Account
             </h1>
-            <p className="text-slate-400 mt-2">DevOps Automation Platform</p>
+            <p className="text-slate-400 mt-2">Join the ChatOps Platform</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleSignup} className="space-y-5">
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-slate-300 ml-1">Full Name</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+            </div>
+
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
               <div className="relative">
@@ -57,7 +77,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
-                  placeholder="admin@chatops.local"
+                  placeholder="john@example.com"
                   required
                 />
               </div>
@@ -93,17 +113,18 @@ export default function Login() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] mt-4"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.5)] mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
-              <ChevronRight className="w-5 h-5" />
+              {loading ? 'Creating Account...' : 'Sign Up'}
+              {!loading && <ChevronRight className="w-5 h-5" />}
             </button>
 
             <div className="text-center mt-6">
               <p className="text-slate-400 text-sm">
-                Don't have an account?{' '}
-                <Link to="/signup" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-                  Sign Up
+                Already have an account?{' '}
+                <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                  Sign In
                 </Link>
               </p>
             </div>

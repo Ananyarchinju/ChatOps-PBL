@@ -17,6 +17,11 @@ router.get('/containers', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/status', authenticateToken, async (req: AuthRequest, res) => {
+  const isOnline = await dockerService.ping();
+  res.json({ status: isOnline ? 'Online' : 'Offline' });
+});
+
 router.post('/containers/:id/:action', authenticateToken, async (req: AuthRequest, res) => {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });

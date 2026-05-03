@@ -14,7 +14,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchRealData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('chatops_token');
         const headers = { Authorization: `Bearer ${token}` };
         
         // Fetch real docker containers

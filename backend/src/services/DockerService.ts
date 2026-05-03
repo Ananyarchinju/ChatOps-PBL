@@ -23,6 +23,15 @@ export class DockerService {
     }
   }
 
+  public async ping() {
+    try {
+      await this.docker.ping();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   public async startContainer(id: string) {
     try {
       const container = this.docker.getContainer(id);
