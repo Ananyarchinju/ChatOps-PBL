@@ -29,31 +29,40 @@ app.get('/api/status', (req, res) => {
 });
 
 async function seedDatabase() {
-  const adminExists = await prisma.user.findUnique({ where: { email: 'admin@chatops.local' } });
-  if (!adminExists) {
-    await prisma.user.create({
-      data: {
-        email: 'admin@chatops.local',
-        password: await bcrypt.hash('password123', 10),
-        name: 'System Admin',
-        role: 'admin'
-      }
-    });
-    console.log('Seeded admin@chatops.local');
-  }
+  await prisma.user.upsert({
+    where: { email: 'admin@chatops.local' },
+    update: {},
+    create: {
+      email: 'admin@chatops.local',
+      password: await bcrypt.hash('password123', 10),
+      name: 'System Admin',
+      role: 'admin'
+    }
+  });
 
-  const userExists = await prisma.user.findUnique({ where: { email: 'dev@chatops.local' } });
-  if (!userExists) {
-    await prisma.user.create({
-      data: {
-        email: 'dev@chatops.local',
-        password: await bcrypt.hash('password123', 10),
-        name: 'Developer User',
-        role: 'user'
-      }
-    });
-    console.log('Seeded dev@chatops.local');
-  }
+  await prisma.user.upsert({
+    where: { email: 'dev@chatops.local' },
+    update: {},
+    create: {
+      email: 'dev@chatops.local',
+      password: await bcrypt.hash('password123', 10),
+      name: 'Developer User',
+      role: 'user'
+    }
+  });
+
+  await prisma.user.upsert({
+    where: { email: 'slack@chatops.local' },
+    update: {},
+    create: {
+      email: 'slack@chatops.local',
+      password: await bcrypt.hash('slack-internal-pass', 10),
+      name: 'Slack Integration',
+      role: 'user'
+    }
+  });
+  
+  console.log('Database seeded successfully (upsert).');
 }
 
 app.listen(PORT, async () => {
