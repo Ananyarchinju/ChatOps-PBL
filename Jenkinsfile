@@ -16,23 +16,16 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t chatops-app .'
-            }
-        }
-
         stage('Run ChatOps') {
             steps {
-                sh 'docker rm -f chatops-app || true'
-                sh 'docker run -d --name chatops-app -p 3000:3000 chatops-app'
+                sh 'docker compose up -d'
             }
         }
     }
 
     post {
         success {
-            echo 'ChatOps application deployed successfully!'
+            echo 'ChatOps deployed successfully!'
         }
 
         failure {
