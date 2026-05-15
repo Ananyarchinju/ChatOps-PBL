@@ -18,18 +18,21 @@ pipeline {
 
         stage('Run ChatOps') {
             steps {
-                sh 'docker compose up -d'
+                sh '''
+                cd backend || true
+                docker ps
+                '''
             }
         }
     }
 
     post {
         success {
-            echo 'ChatOps deployed successfully!'
+            echo 'Pipeline executed successfully!'
         }
 
         failure {
-            echo 'Pipeline failed. Check console output.'
+            echo 'Pipeline failed.'
         }
     }
 }
