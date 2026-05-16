@@ -13,6 +13,7 @@ router.get('/history', authenticateToken, async (req: AuthRequest, res) => {
       where: { userId: req.user?.id },
       orderBy: { timestamp: 'asc' }
     });
+
     res.json(history);
   } catch (error) {
     console.error('Failed to fetch history', error);
@@ -23,60 +24,125 @@ router.get('/history', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/command', authenticateToken, async (req: AuthRequest, res) => {
   const { command } = req.body;
   const user = req.user;
-  
+
   if (!command) {
     return res.status(400).json({ error: 'Command is required' });
   }
 
   const rawCmd = command.trim();
   const cmd = rawCmd.toLowerCase();
-  
+
   let responseText = '';
   let status = 'success';
+
   let baseCmd = cmd.split(' ')[0] || 'unknown';
-  if (baseCmd.startsWith('/')) baseCmd = baseCmd.substring(1);
-  
-  // Handle slash commands and commands without slashes
-  if (cmd.startsWith('/status') || cmd === 'status') {
-    responseText = `Server: Online\nCPU: 32%\nRAM: 58%\nContainers: 6 Running`;
-  } else if (cmd.startsWith('/build') || cmd.startsWith('build ')) {
+  if (baseCmd.startsWith('/')) {
+    baseCmd = baseCmd.substring(1);
+  }
+
+  // HELP COMMAND
+  if (cmd === '/help' || cmd === 'help') {
+    responseText = `🤖 Available Commands:
+
+📊 Monitoring
+/status → View system status
+
+🚀 Jenkins
+/build <job-name> → Trigger Jenkins build
+
+🐳 Docker
+/docker ps → List containers
+/docker restart <container-id> → Restart container
+
+🚀 Deployment
+/deploy <environment> → Deploy application
+
+📜 Logs
+/logs → View recent logs
+
+💡 Example Commands:
+status
+build chatops-project
+docker ps`;
+
+  }
+
+  // STATUS
+  else if (cmd.startsWith('/status') || cmd === 'status') {
+    responseText = `✅ Server: Online
+📊 CPU: 32%
+🧠 RAM: 58%
+🐳 Containers: 6 Running`;
+  }
+
+  // BUILD
+  else if (cmd.startsWith('/build') || cmd.startsWith('build ')) {
     const target = rawCmd.replace(/^\/?build\s*/i, '') || 'default';
+
     try {
       responseText = await jenkinsService.triggerBuild(target);
     } catch (error: any) {
       responseText = `[ERROR] ${error.message}`;
       status = 'failed';
     }
-  } else if (cmd.startsWith('/deploy') || cmd.startsWith('deploy ')) {
+  }
+
+  // DEPLOY
+  else if (cmd.startsWith('/deploy') || cmd.startsWith('deploy ')) {
     if (user?.role !== 'admin') {
       responseText = `[ERROR] Unauthorized: Only admins can trigger deployments.`;
       status = 'failed';
     } else {
       const env = rawCmd.replace(/^\/?deploy\s*/i, '') || 'production';
-      responseText = `Deploying latest Docker image to '${env}' environment...\nDeploy successful!`;
+
+      responseText = `🚀 Deploying latest Docker image to '${env}' environment...`;
     }
-  } else if (cmd.startsWith('/logs') || cmd === 'logs') {
-    responseText = `Fetching latest logs...\n[INFO] System running normally.\n[WARN] High memory usage detected.`;
-  } else if (cmd.startsWith('/docker ps') || cmd === 'docker ps') {
+  }
+
+  // LOGS
+  else if (cmd.startsWith('/logs') || cmd === 'logs') {
+    responseText = `📜 Fetching latest logs...
+
+[INFO] System running normally
+[INFO] Backend healthy
+[INFO] Jenkins connected`;
+  }
+
+  // DOCKER PS
+  else if (cmd.startsWith('/docker ps') || cmd === 'docker ps') {
     try {
       const containers = await dockerService.listContainers();
+
       if (containers.length === 0) {
         responseText = `No containers running.`;
       } else {
-        responseText = `CONTAINER ID   IMAGE          STATUS\n` + 
-          containers.map(c => `${c.id.padEnd(14)} ${c.image.substring(0, 14).padEnd(14)} ${c.status}`).join('\n');
+        responseText =
+          `CONTAINER ID   IMAGE                STATUS\n` +
+          containers
+            .map(
+              (c) =>
+                `${c.id.padEnd(14)} ${c.image.substring(0, 20).padEnd(20)} ${c.status}`
+            )
+            .join('\n');
       }
     } catch (error: any) {
       responseText = `[ERROR] Failed to list Docker containers: ${error.message}`;
       status = 'failed';
     }
-  } else if (cmd.startsWith('/docker restart') || cmd.startsWith('docker restart ')) {
+  }
+
+  // DOCKER RESTART
+  else if (
+    cmd.startsWith('/docker restart') ||
+    cmd.startsWith('docker restart ')
+  ) {
     if (user?.role !== 'admin') {
       responseText = `[ERROR] Unauthorized: Only admins can restart containers.`;
       status = 'failed';
     } else {
       const parts = rawCmd.split(' ');
       const targetId = parts[parts.length - 1];
+
       try {
         responseText = await dockerService.restartContainer(targetId);
       } catch (error: any) {
@@ -84,14 +150,30 @@ router.post('/command', authenticateToken, async (req: AuthRequest, res) => {
         status = 'failed';
       }
     }
-  } else if (cmd.includes('why') && cmd.includes('failed')) {
-    responseText = `[AI Analysis] I've analyzed the recent logs. The build failed because of a missing dependency in the frontend package.json: 'axios'. Please run 'npm install axios' and trigger the build again.`;
-  } else {
-    responseText = `I'm not sure how to process "${rawCmd}".\n\nAvailable commands:\n- /status\n- /build [target]\n- /deploy [env]\n- /logs\n- /docker ps\n\nYou can also ask me questions like "Why build failed?"`;
+  }
+
+  // AI FAILURE ANALYSIS
+  else if (cmd.includes('why') && cmd.includes('failed')) {
+    responseText = `[AI Analysis] The build failed due to a missing dependency. Please verify installed packages and rebuild.`;
+  }
+
+  // UNKNOWN COMMAND
+  else {
+    responseText = `❌ I'm not sure how to process "${rawCmd}"
+
+Try:
+/help
+/status
+/build chatops-project
+/docker ps`;
+
     status = 'failed';
   }
 
-  chatCommandCounter.inc({ command: baseCmd, status });
+  chatCommandCounter.inc({
+    command: baseCmd,
+    status
+  });
 
   try {
     if (user) {
