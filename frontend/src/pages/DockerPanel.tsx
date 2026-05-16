@@ -16,14 +16,14 @@ export default function DockerPanel() {
     setLoading(true);
     try {
       // 1. Check if Docker daemon is online
-      const statusRes = await axios.get('http://localhost:3000/api/docker/status', {
+      const statusRes = await axios.get('http://52.66.209.91:3000/api/docker/status', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSystemStatus(statusRes.data.status);
 
       if (statusRes.data.status === 'Online') {
         // 2. Fetch containers if online
-        const containersRes = await axios.get('http://localhost:3000/api/docker/containers', {
+        const containersRes = await axios.get('http://52.66.209.91:3000/api/docker/containers', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setContainers(containersRes.data);
@@ -49,7 +49,7 @@ export default function DockerPanel() {
 
   const handleAction = async (id: string, action: string) => {
     try {
-      await axios.post(`http://localhost:3000/api/docker/containers/${id}/${action}`, {}, {
+      await axios.post(`http://52.66.209.91:3000/api/docker/containers/${id}/${action}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       fetchStatusAndContainers();

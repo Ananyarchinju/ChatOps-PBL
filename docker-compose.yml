@@ -8,6 +8,7 @@ services:
       - ./backend/.env
     volumes:
       - ./backend/prisma/data:/app/prisma/data
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: always
 
   frontend:
@@ -33,6 +34,16 @@ services:
     container_name: grafana
     ports:
       - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_AUTH_DISABLE_LOGIN_FORM=false
+      - GF_SECURITY_COOKIE_SAMESITE=disabled
+      - GF_SECURITY_COOKIE_SECURE=false
+      - GF_SERVER_DOMAIN=52.66.209.91
+      - GF_SERVER_ROOT_URL=http://52.66.209.91:3001
     volumes:
-      - ./grafana:/var/lib/grafana
+      - /home/ubuntu/grafana-storage:/var/lib/grafana
     restart: always

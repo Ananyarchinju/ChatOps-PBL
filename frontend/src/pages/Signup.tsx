@@ -20,7 +20,7 @@ export default function Signup() {
     setError('');
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3000/api/auth/register', { name, email, password });
+      const res = await axios.post('http://52.66.209.91:3000/api/auth/register', { name, email, password });
       login(res.data.token, res.data.user);
       navigate('/dashboard');
     } catch (err: any) {

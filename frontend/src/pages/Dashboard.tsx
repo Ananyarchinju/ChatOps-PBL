@@ -19,12 +19,12 @@ export default function Dashboard() {
         
         // Fetch real docker containers
         if (isAdmin) {
-          const dockerRes = await axios.get('http://localhost:3000/api/docker/containers', { headers });
+          const dockerRes = await axios.get('http://52.66.209.91:3000/api/docker/containers', { headers });
           setContainersCount(dockerRes.data.length);
         }
 
         // Fetch user's real command history
-        const historyRes = await axios.get('http://localhost:3000/api/chat/history', { headers });
+        const historyRes = await axios.get('http://52.66.209.91:3000/api/chat/history', { headers });
         const allMessages = historyRes.data;
         // Filter out bot responses to just show user commands
         const userCommands = allMessages.filter((msg: any) => msg.role === 'user');

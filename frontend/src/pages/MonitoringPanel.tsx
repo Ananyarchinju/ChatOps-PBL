@@ -10,7 +10,7 @@ export default function MonitoringPanel() {
     setChecking(true);
     try {
       // Try to fetch the Grafana login page (no-cors mode to avoid preflight issues)
-      await fetch('http://localhost:3001/login', { mode: 'no-cors', cache: 'no-cache' });
+      await fetch('http://52.66.209.91:3001/login', { mode: 'no-cors', cache: 'no-cache' });
       setIsOnline(true);
     } catch (err) {
       console.error("Monitoring service unreachable:", err);
@@ -85,7 +85,7 @@ export default function MonitoringPanel() {
                 Retry Connection
               </button>
               <a 
-                href="http://localhost:3001" 
+                href="http://52.66.209.91:3001" 
                 target="_blank" 
                 rel="noreferrer"
                 className="text-slate-400 hover:text-slate-200 text-sm flex items-center justify-center gap-2"
@@ -94,15 +94,16 @@ export default function MonitoringPanel() {
               </a>
             </div>
           </div>
-        ) : isOnline === true ? (
+        ) : isOnline === true ?( 
           <iframe
-            src="http://localhost:3001/d/chatops-dashboard/chatops-system-metrics?orgId=1&refresh=5s&kiosk=tv&theme=dark"
+            key={Date.now()}
+            src="http://52.66.209.91:3001/d/rYdddlPWk/node-exporter-full?orgId=1&from=now-24h&to=now&timezone=browser&var-ds_prometheus=ffm897gang2kge&var-job=node-exporter&var-nodename=42f09efc5685&var-node=172.17.0.1:9100&refresh=1m&kiosk=tv&theme=dark"
             width="100%"
             height="100%"
             frameBorder="0"
             title="Grafana Dashboard"
             className="absolute inset-0"
-          ></iframe>
+        ></iframe>
         ) : (
           <div className="flex flex-col items-center gap-4">
             <RefreshCw className="w-12 h-12 text-blue-500 animate-spin" />
@@ -113,3 +114,4 @@ export default function MonitoringPanel() {
     </div>
   );
 }
+

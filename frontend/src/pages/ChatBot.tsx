@@ -28,7 +28,7 @@ export default function ChatBot() {
   useEffect(() => {
     if (!token) return;
     
-    axios.get('http://localhost:3000/api/chat/history', {
+    axios.get('http://52.66.209.91:3000/api/chat/history', {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => {
       const historyMessages: Message[] = [];
@@ -75,7 +75,7 @@ export default function ChatBot() {
     setInput('');
 
     try {
-      const res = await axios.post('http://localhost:3000/api/chat/command', { command: currentInput }, {
+      const res = await axios.post('http://52.66.209.91:3000/api/chat/command', { command: currentInput }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMessages(prev => [...prev, {
