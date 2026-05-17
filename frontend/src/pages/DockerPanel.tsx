@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Play, Square, RotateCw, Box, DownloadCloud, AlertCircle, Terminal, ExternalLink } from 'lucide-react';
+import { Play, Square, RotateCw, Box, DownloadCloud, AlertCircle, Terminal, ExternalLink, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 export default function DockerPanel() {
   const { token } = useAuth();
   const [containers, setContainers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [systemStatus, setSystemStatus] = useState<'Online' | 'Offline' | 'Loading'>('Loading');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -61,6 +62,30 @@ export default function DockerPanel() {
   const runningCount = containers.filter(c => c.state === 'running').length;
   const stoppedCount = containers.filter(c => c.state !== 'running').length;
 
+  const handlePullImage = async () => {
+    const imageName = prompt("Enter the image name to pull (e.g., nginx:latest):");
+    if (!imageName) return;
+    
+    try {
+      setLoading(true);
+      await axios.post(`http://52.66.209.91:3000/api/docker/pull`, { image: imageName }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert(`Successfully pulled ${imageName}`);
+      fetchStatusAndContainers();
+    } catch (error: any) {
+      console.error('Failed to pull image', error);
+      alert(`Failed to pull image: ${error.response?.data?.error || error.message}`);
+      setLoading(false);
+    }
+  };
+
+  const filteredContainers = containers.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    c.image.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -77,7 +102,10 @@ export default function DockerPanel() {
             <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 shadow-lg active:scale-95">
+          <button 
+            onClick={handlePullImage}
+            className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 shadow-lg active:scale-95"
+          >
             <DownloadCloud className="w-4 h-4" />
             Pull Image
           </button>
@@ -101,6 +129,21 @@ export default function DockerPanel() {
           </div>
         ))}
       </div>
+
+      {systemStatus === 'Online' && (
+        <div className="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row gap-4 items-center bg-slate-900/50 border border-slate-800">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input 
+              type="text" 
+              placeholder="Search containers..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+          </div>
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         {systemStatus === 'Offline' ? (
@@ -164,7 +207,13 @@ export default function DockerPanel() {
                   <DownloadCloud className="w-5 h-5" /> Pull your first image
                 </button>
               </div>
-            ) : containers.map((container, idx) => (
+            ) : filteredContainers.length === 0 ? (
+              <div className="col-span-full py-20 text-center glass-panel rounded-3xl border-dashed border-2">
+                <Box className="w-16 h-16 text-slate-700 mx-auto mb-4" />
+                <h3 className="text-xl font-bold">No Containers Found</h3>
+                <p className="text-slate-400 mt-2">No containers matched your search criteria.</p>
+              </div>
+            ) : filteredContainers.map((container, idx) => (
               <motion.div 
                 layout
                 initial={{ opacity: 0, y: 10 }}

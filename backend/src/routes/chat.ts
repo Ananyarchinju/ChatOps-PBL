@@ -69,10 +69,17 @@ docker ps`;
 
   // STATUS
   else if (cmd.startsWith('/status') || cmd === 'status') {
-    responseText = `✅ Server: Online
-📊 CPU: 32%
-🧠 RAM: 58%
-🐳 Containers: 6 Running`;
+    try {
+      const containers = await dockerService.listContainers();
+      const running = containers.filter((c: any) => c.state === 'running').length;
+      responseText = `✅ Server: Online
+📊 Process Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB
+🐳 Containers: ${running} Running / ${containers.length} Total`;
+    } catch (e) {
+      responseText = `✅ Server: Online
+📊 Process Memory: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB
+🐳 Containers: Unable to reach Docker`;
+    }
   }
 
   // BUILD
@@ -94,18 +101,30 @@ docker ps`;
       status = 'failed';
     } else {
       const env = rawCmd.replace(/^\/?deploy\s*/i, '') || 'production';
-
       responseText = `🚀 Deploying latest Docker image to '${env}' environment...`;
+      try {
+        responseText += '\n' + await jenkinsService.triggerBuild(`deploy-${env}`);
+      } catch (error: any) {
+        responseText += `\n[NOTE] Jenkins job 'deploy-${env}' not found, simulation mode only.`;
+      }
     }
   }
 
   // LOGS
-  else if (cmd.startsWith('/logs') || cmd === 'logs') {
-    responseText = `📜 Fetching latest logs...
-
-[INFO] System running normally
-[INFO] Backend healthy
-[INFO] Jenkins connected`;
+  else if (cmd.startsWith('/logs') || cmd.startsWith('logs ')) {
+    const targetId = rawCmd.replace(/^\/?logs\s*/i, '').trim();
+    if (!targetId || targetId === '/logs' || targetId === 'logs') {
+      responseText = `[ERROR] Please provide a container ID. Example: /logs <container-id>`;
+      status = 'failed';
+    } else {
+      try {
+        responseText = await dockerService.getContainerLogs(targetId);
+        if (!responseText) responseText = `[INFO] No logs found for container ${targetId}`;
+      } catch (error: any) {
+        responseText = `[ERROR] ${error.message}`;
+        status = 'failed';
+      }
+    }
   }
 
   // DOCKER PS

@@ -5,24 +5,46 @@ import axios from 'axios';
 
 export default function JenkinsPanel() {
   const [builds, setBuilds] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const fetchJobs = async () => {
+    try {
+      const token = localStorage.getItem('chatops_token');
+      const res = await axios.get('http://52.66.209.91:3000/api/jenkins/jobs', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setBuilds(res.data);
+    } catch (err) {
+      console.error("Failed to fetch Jenkins jobs", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const token = localStorage.getItem('chatops_token');
-        const res = await axios.get('http://52.66.209.91:3000/api/jenkins/jobs', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setBuilds(res.data);
-      } catch (err) {
-        console.error("Failed to fetch Jenkins jobs", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchJobs();
   }, []);
+
+  const handleTriggerBuild = async () => {
+    const jobName = prompt("Enter the Jenkins job name to trigger:");
+    if (!jobName) return;
+
+    try {
+      const token = localStorage.getItem('chatops_token');
+      await axios.post(`http://52.66.209.91:3000/api/jenkins/build/${encodeURIComponent(jobName)}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert(`Successfully triggered build for job '${jobName}'`);
+      // Optionally refresh jobs after triggering
+      fetchJobs();
+    } catch (error: any) {
+      console.error("Failed to trigger build", error);
+      alert(`Failed to trigger build: ${error.response?.data?.error || error.message}`);
+    }
+  };
+
+  const filteredBuilds = builds.filter(b => b.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="space-y-6">
@@ -31,7 +53,10 @@ export default function JenkinsPanel() {
           <h1 className="text-3xl font-bold">Jenkins Pipelines</h1>
           <p className="text-slate-400 mt-1">Manage and monitor CI/CD workflows</p>
         </div>
-        <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.3)]">
+        <button 
+          onClick={handleTriggerBuild}
+          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-medium transition-colors flex items-center gap-2 shadow-[0_0_15px_rgba(37,99,235,0.3)]"
+        >
           <Play className="w-4 h-4 fill-current" />
           Trigger Build
         </button>
@@ -44,6 +69,8 @@ export default function JenkinsPanel() {
             <input 
               type="text" 
               placeholder="Search jobs..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-950 border border-slate-700 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
@@ -71,7 +98,11 @@ export default function JenkinsPanel() {
                 <tr>
                   <td colSpan={3} className="py-8 text-center text-slate-400">No jobs found or Jenkins is disconnected.</td>
                 </tr>
-              ) : builds.map((build, idx) => (
+              ) : filteredBuilds.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-slate-400">No jobs matched your search.</td>
+                </tr>
+              ) : filteredBuilds.map((build, idx) => (
                 <motion.tr 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}

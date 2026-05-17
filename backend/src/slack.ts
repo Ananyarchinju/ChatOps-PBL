@@ -33,18 +33,20 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
   });
 
   // Help command
-  slackApp.message(/help/i, async ({ message, say }) => {
+  slackApp.command('/help', async ({ command, ack, respond }) => {
+    await ack();
     const text = `Hi there! :wave: I am your ChatOps Assistant. Here's what I can do:
-• \`status\` - View server status metrics
-• \`build <job-name>\` - Trigger a Jenkins build
-• \`docker ps\` - List running Docker containers
-• \`docker restart <id>\` - Restart a Docker container`;
-    await say(text);
-    if ('user' in message) await logSlackCommand(message.user, 'help', 'success', text);
+• \`/status\` - View server status metrics
+• \`/build <job-name>\` - Trigger a Jenkins build
+• \`/docker ps\` - List running Docker containers
+• \`/docker restart <id>\` - Restart a Docker container`;
+    await respond(text);
+    await logSlackCommand(command.user_id, '/help', 'success', text);
   });
 
   // Status command
-  slackApp.message(/^status/i, async ({ message, say }) => {
+  slackApp.command('/status', async ({ command, ack, respond }) => {
+    await ack();
     const blocks = [
       {
         "type": "section",
@@ -66,62 +68,88 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
         ]
       }
     ];
-    await say({ blocks });
-    if ('user' in message) await logSlackCommand(message.user, 'status', 'success', 'Status blocks sent');
+    await respond({ blocks });
+    await logSlackCommand(command.user_id, '/status', 'success', 'Status blocks sent');
   });
 
   // Build command
-  slackApp.message(/^build (.+)/i, async ({ message, context, say }) => {
-    const jobName = context.matches[1].trim();
-    await say(`:hourglass_flowing_sand: Triggering Jenkins build for job: *${jobName}*...`);
+  slackApp.command('/build', async ({ command, ack, respond }) => {
+    await ack();
+    const jobName = command.text.trim();
+    if (!jobName) {
+      await respond(`:warning: Please provide a job name. Example: \`/build my-job\``);
+      return;
+    }
+    await respond(`:hourglass_flowing_sand: Triggering Jenkins build for job: *${jobName}*...`);
     try {
       const result = await jenkinsService.triggerBuild(jobName);
-      await say(`:white_check_mark: ${result}`);
-      if ('user' in message) await logSlackCommand(message.user, `build ${jobName}`, 'success', result);
+      await respond(`:white_check_mark: ${result}`);
+      await logSlackCommand(command.user_id, `/build ${jobName}`, 'success', result);
     } catch (error: any) {
-      await say(`:x: [ERROR] ${error.message}`);
-      if ('user' in message) await logSlackCommand(message.user, `build ${jobName}`, 'failed', error.message);
+      await respond(`:x: [ERROR] ${error.message}`);
+      await logSlackCommand(command.user_id, `/build ${jobName}`, 'failed', error.message);
     }
   });
 
-  // Docker PS command
-  slackApp.message(/^docker ps/i, async ({ message, say }) => {
-    try {
-      const containers = await dockerService.listContainers();
-      if (containers.length === 0) {
-        await say(`No containers running.`);
-        if ('user' in message) await logSlackCommand(message.user, 'docker ps', 'success', 'No containers');
-      } else {
-        const blocks: any[] = [
-          {
-            "type": "section",
-            "text": { "type": "mrkdwn", "text": "*Docker Container Inventory* :docker:" }
-          },
-          { "type": "divider" }
-        ];
-
-        containers.forEach(c => {
-          blocks.push({
-            "type": "section",
-            "text": {
-              "type": "mrkdwn",
-              "text": `*${c.name}* (${c.id})\nImage: \`${c.image}\`\nStatus: _${c.status}_`
+  // Docker command
+  slackApp.command('/docker', async ({ command, ack, respond }) => {
+    await ack();
+    const args = command.text.trim();
+    if (args === 'ps') {
+      try {
+        const containers = await dockerService.listContainers();
+        if (containers.length === 0) {
+          await respond(`No containers running.`);
+          await logSlackCommand(command.user_id, '/docker ps', 'success', 'No containers');
+        } else {
+          const blocks: any[] = [
+            {
+              "type": "section",
+              "text": { "type": "mrkdwn", "text": "*Docker Container Inventory* :docker:" }
             },
-            "accessory": {
-              "type": "button",
-              "text": { "type": "plain_text", "text": "Restart", "emoji": true },
-              "value": c.id,
-              "action_id": "restart_container"
-            }
-          });
-        });
+            { "type": "divider" }
+          ];
 
-        await say({ blocks });
-        if ('user' in message) await logSlackCommand(message.user, 'docker ps', 'success', `${containers.length} containers found`);
+          containers.forEach(c => {
+            blocks.push({
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": `*${c.name}* (${c.id})\nImage: \`${c.image}\`\nStatus: _${c.status}_`
+              },
+              "accessory": {
+                "type": "button",
+                "text": { "type": "plain_text", "text": "Restart", "emoji": true },
+                "value": c.id,
+                "action_id": "restart_container"
+              }
+            });
+          });
+
+          await respond({ blocks });
+          await logSlackCommand(command.user_id, '/docker ps', 'success', `${containers.length} containers found`);
+        }
+      } catch (error: any) {
+        await respond(`:x: [ERROR] Failed to list Docker containers: ${error.message}`);
+        await logSlackCommand(command.user_id, '/docker ps', 'failed', error.message);
       }
-    } catch (error: any) {
-      await say(`:x: [ERROR] Failed to list Docker containers: ${error.message}`);
-      if ('user' in message) await logSlackCommand(message.user, 'docker ps', 'failed', error.message);
+    } else if (args.startsWith('restart ')) {
+      const containerId = args.replace('restart', '').trim();
+      if (!containerId) {
+        await respond(`:warning: Please provide a container ID. Example: \`/docker restart abc123def456\``);
+        return;
+      }
+      await respond(`:arrows_counterclockwise: Restarting container *${containerId}*...`);
+      try {
+        const result = await dockerService.restartContainer(containerId);
+        await respond(`:white_check_mark: ${result}`);
+        await logSlackCommand(command.user_id, `/docker restart ${containerId}`, 'success', result);
+      } catch (error: any) {
+        await respond(`:x: [ERROR] ${error.message}`);
+        await logSlackCommand(command.user_id, `/docker restart ${containerId}`, 'failed', error.message);
+      }
+    } else {
+      await respond(`:warning: Unknown docker command. Try \`/docker ps\` or \`/docker restart <id>\``);
     }
   });
 
@@ -137,20 +165,6 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     } catch (error: any) {
       await respond(`:x: [ERROR] ${error.message}`);
       await logSlackCommand(body.user.id, `button:restart ${containerId}`, 'failed', error.message);
-    }
-  });
-
-  // Docker Restart command (text version)
-  slackApp.message(/^docker restart (.+)/i, async ({ message, context, say }) => {
-    const containerId = context.matches[1].trim();
-    await say(`:arrows_counterclockwise: Restarting container *${containerId}*...`);
-    try {
-      const result = await dockerService.restartContainer(containerId);
-      await say(`:white_check_mark: ${result}`);
-      if ('user' in message) await logSlackCommand(message.user, `docker restart ${containerId}`, 'success', result);
-    } catch (error: any) {
-      await say(`:x: [ERROR] ${error.message}`);
-      if ('user' in message) await logSlackCommand(message.user, `docker restart ${containerId}`, 'failed', error.message);
     }
   });
 

@@ -61,6 +61,41 @@ export class DockerService {
       throw new Error(`Failed to restart container ${id}: ${error.message}`);
     }
   }
+
+  public async pullImage(imageName: string): Promise<string> {
+    try {
+      return new Promise((resolve, reject) => {
+        this.docker.pull(imageName, (err: any, stream: any) => {
+          if (err) return reject(err);
+          this.docker.modem.followProgress(stream, onFinished, onProgress);
+          function onFinished(err: any, output: any) {
+            if (err) return reject(err);
+            resolve(`Image ${imageName} pulled successfully.`);
+          }
+          function onProgress(event: any) {
+            // we could emit this to a websocket, but for now we just wait
+          }
+        });
+      });
+    } catch (error: any) {
+      throw new Error(`Failed to pull image ${imageName}: ${error.message}`);
+    }
+  }
+
+  public async getContainerLogs(id: string): Promise<string> {
+    try {
+      const container = this.docker.getContainer(id);
+      const logs = await container.logs({
+        stdout: true,
+        stderr: true,
+        tail: 50,
+        timestamps: false
+      });
+      return logs.toString('utf8');
+    } catch (error: any) {
+      throw new Error(`Failed to fetch logs for container ${id}: ${error.message}`);
+    }
+  }
 }
 
 export const dockerService = new DockerService();

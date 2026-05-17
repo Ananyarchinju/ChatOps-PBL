@@ -48,4 +48,19 @@ router.post('/containers/:id/:action', authenticateToken, async (req: AuthReques
   }
 });
 
+router.post('/pull', authenticateToken, async (req: AuthRequest, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { image } = req.body;
+  if (!image) return res.status(400).json({ error: 'Image name is required' });
+  
+  try {
+    const result = await dockerService.pullImage(image);
+    res.json({ message: result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

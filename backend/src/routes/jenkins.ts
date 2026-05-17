@@ -13,4 +13,14 @@ router.get('/jobs', authenticateToken, async (req, res) => {
   }
 });
 
+router.post('/build/:jobName', authenticateToken, async (req, res) => {
+  try {
+    const jobName = req.params.jobName;
+    const result = await jenkinsService.triggerBuild(jobName);
+    res.json({ message: result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
