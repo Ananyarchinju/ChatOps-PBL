@@ -1,3 +1,4 @@
+```groovy
 pipeline {
     agent any
 
@@ -13,22 +14,44 @@ pipeline {
         stage('Check Docker') {
             steps {
                 sh 'docker --version'
+                sh 'docker compose version || docker-compose --version'
             }
         }
 
-        stage('Run ChatOps') {
+        stage('Stop Existing Containers') {
             steps {
                 sh '''
-                cd backend || true
-                docker ps
+                docker compose down || true
                 '''
+            }
+        }
+
+        stage('Build Containers') {
+            steps {
+                sh '''
+                docker compose build
+                '''
+            }
+        }
+
+        stage('Run ChatOps Application') {
+            steps {
+                sh '''
+                docker compose up -d
+                '''
+            }
+        }
+
+        stage('Check Running Containers') {
+            steps {
+                sh 'docker ps'
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline executed successfully!'
+            echo 'ChatOps-PBL deployed successfully!'
         }
 
         failure {
@@ -36,3 +59,4 @@ pipeline {
         }
     }
 }
+```
