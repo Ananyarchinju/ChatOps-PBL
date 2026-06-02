@@ -44,6 +44,7 @@ pipeline {
 
         stage('Deploy') {
             steps {
+                bat 'copy "C:\\Users\\basav\\Downloads\\ChatOps-PBL-main (2)\\ChatOps-PBL-main\\backend\\.env" "backend\\.env" /Y'
                 bat 'docker compose up -d --build'
             }
         }
