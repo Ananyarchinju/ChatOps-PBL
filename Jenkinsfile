@@ -10,13 +10,39 @@ pipeline {
             }
         }
 
-        stage('Check Docker') {
+        stage('Install Frontend Dependencies') {
             steps {
-                bat 'docker --version'
+                dir('frontend') {
+                    bat 'npm install'
+                }
             }
         }
 
-        stage('Check Running Containers') {
+        stage('Build Frontend') {
+            steps {
+                dir('frontend') {
+                    bat 'npm run build'
+                }
+            }
+        }
+
+        stage('Install Backend Dependencies') {
+            steps {
+                dir('backend') {
+                    bat 'npm install'
+                }
+            }
+        }
+
+        stage('Build Backend') {
+            steps {
+                dir('backend') {
+                    bat 'npm run build'
+                }
+            }
+        }
+
+        stage('Check Docker') {
             steps {
                 bat 'docker ps'
             }
@@ -24,7 +50,7 @@ pipeline {
 
         stage('Build Success') {
             steps {
-                echo 'ChatOps-PBL pipeline executed successfully!'
+                echo 'Frontend and Backend built successfully!'
             }
         }
     }
