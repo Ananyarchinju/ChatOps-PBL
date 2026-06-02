@@ -1,16 +1,17 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+dotenv.config();
+
 import authRoutes from './routes/auth';
 import chatRoutes from './routes/chat';
 import metricsRoutes from './routes/metrics';
 import dockerRoutes from './routes/docker';
 import jenkinsRoutes from './routes/jenkins';
+import systemRoutes from './routes/system';
 import { prisma } from './db';
 import bcrypt from 'bcryptjs';
 import { startSlackBot } from './slack';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,9 +24,10 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/docker', dockerRoutes);
 app.use('/api/metrics', metricsRoutes);
 app.use('/api/jenkins', jenkinsRoutes);
+app.use('/api/system', systemRoutes);
 
 app.get('/api/status', (req, res) => {
-  res.json({ status: 'Online', version: '1.0.0' });
+  res.json({ status: 'Online', version: '1.0.1' });
 });
 
 async function seedDatabase() {

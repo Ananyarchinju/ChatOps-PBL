@@ -10,7 +10,7 @@ export class JenkinsService {
     this.url = process.env.JENKINS_URL || '';
     this.user = process.env.JENKINS_USER || '';
     this.token = process.env.JENKINS_TOKEN || '';
-    
+
     const credentials = Buffer.from(`${this.user}:${this.token}`).toString('base64');
     this.authHeader = `Basic ${credentials}`;
   }
@@ -18,7 +18,7 @@ export class JenkinsService {
   /**
    * Fetches the CSRF Crumb from Jenkins.
    */
-  private async getCrumb(): Promise<{ field: string, value: string } | null> {
+  private async getCrumb(): Promise<{ field: string, value: string, cookies?: string[] } | null> {
     try {
       const response = await axios.get(`${this.url}/crumbIssuer/api/json`, {
         headers: {
@@ -26,7 +26,11 @@ export class JenkinsService {
         }
       });
       if (response.data && response.data.crumbRequestField && response.data.crumb) {
-        return { field: response.data.crumbRequestField, value: response.data.crumb };
+        return { 
+          field: response.data.crumbRequestField, 
+          value: response.data.crumb,
+          cookies: response.headers['set-cookie'] as string[] | undefined
+        };
       }
       return null;
     } catch (error: any) {
@@ -43,24 +47,26 @@ export class JenkinsService {
    * Triggers a build for the specified job name.
    */
   public async triggerBuild(jobName: string): Promise<string> {
-    if (!this.url || !this.user || !this.token) {
-      throw new Error("Jenkins credentials are not fully configured in the environment.");
+    if (!this.url) {
+      throw new Error("Jenkins URL is not configured.");
     }
-
     try {
       const crumb = await this.getCrumb();
       const headers: any = {
         'Authorization': this.authHeader
       };
-      
+
       if (crumb) {
         headers[crumb.field] = crumb.value;
+        if (crumb.cookies) {
+          headers['Cookie'] = crumb.cookies.join('; ');
+        }
       }
 
       const buildUrl = `${this.url}/job/${encodeURIComponent(jobName)}/build`;
-      
+
       const response = await axios.post(buildUrl, {}, { headers });
-      
+
       if (response.status === 201 || response.status === 200) {
         return `Successfully triggered build for job '${jobName}'. Check Jenkins UI for progress.`;
       } else {
@@ -92,15 +98,15 @@ export class JenkinsService {
           'Authorization': this.authHeader
         }
       });
-      
+
       if (response.data && response.data.jobs) {
         return response.data.jobs.map((job: any) => ({
           name: job.name,
-          url: job.url,
+          url: `${this.url}/job/${encodeURIComponent(job.name)}/`,
           // Convert Jenkins color code to a standardized status
-          status: job.color === 'blue' ? 'success' : 
-                  job.color === 'red' ? 'failed' : 
-                  job.color?.includes('anime') ? 'building' : 'aborted'
+          status: job.color === 'blue' ? 'success' :
+            job.color === 'red' ? 'failed' :
+              job.color?.includes('anime') ? 'building' : 'aborted'
         }));
       }
       return [];

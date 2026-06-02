@@ -42,15 +42,15 @@ pipeline {
             }
         }
 
-        stage('Check Docker') {
+        stage('Deploy') {
             steps {
-                bat 'docker ps'
+                bat 'docker compose up -d --build'
             }
         }
 
-        stage('Build Success') {
+        stage('Verify Deployment') {
             steps {
-                echo 'Frontend and Backend built successfully!'
+                bat 'docker ps'
             }
         }
     }

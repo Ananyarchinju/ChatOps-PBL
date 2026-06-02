@@ -63,4 +63,18 @@ router.post('/pull', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+router.get('/logs/:id', authenticateToken, async (req: AuthRequest, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const id = req.params.id as string;
+  
+  try {
+    const logs = await dockerService.getContainerLogs(id);
+    res.json({ logs });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

@@ -11,7 +11,7 @@ export default function JenkinsPanel() {
   const fetchJobs = async () => {
     try {
       const token = localStorage.getItem('chatops_token');
-      const res = await axios.get('http://52.66.209.91:3000/api/jenkins/jobs', {
+      const res = await axios.get('http://localhost:3000/api/jenkins/jobs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBuilds(res.data);
@@ -32,7 +32,7 @@ export default function JenkinsPanel() {
 
     try {
       const token = localStorage.getItem('chatops_token');
-      await axios.post(`http://52.66.209.91:3000/api/jenkins/build/${encodeURIComponent(jobName)}`, {}, {
+      await axios.post(`http://localhost:3000/api/jenkins/build/${encodeURIComponent(jobName)}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert(`Successfully triggered build for job '${jobName}'`);

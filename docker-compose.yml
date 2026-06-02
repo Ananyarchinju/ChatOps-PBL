@@ -42,8 +42,11 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=false
       - GF_SECURITY_COOKIE_SAMESITE=disabled
       - GF_SECURITY_COOKIE_SECURE=false
-      - GF_SERVER_DOMAIN=52.66.209.91
-      - GF_SERVER_ROOT_URL=http://52.66.209.91:3001
+      - GF_SERVER_DOMAIN=localhost
+      - GF_SERVER_ROOT_URL=http://localhost:3001
     volumes:
-      - /home/ubuntu/grafana-storage:/var/lib/grafana
+      - grafana-storage:/var/lib/grafana
     restart: always
+
+volumes:
+  grafana-storage:

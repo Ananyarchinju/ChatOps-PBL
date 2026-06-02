@@ -25,3 +25,10 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
       - GF_SECURITY_ALLOW_EMBEDDING=true
     restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: chatops-node-exporter
+    ports:
+      - "9100:9100"
+    restart: unless-stopped

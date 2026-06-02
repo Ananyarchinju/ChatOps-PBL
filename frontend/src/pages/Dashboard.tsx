@@ -10,6 +10,9 @@ export default function Dashboard() {
   const [containersCount, setContainersCount] = useState<number | string>('...');
   const [commandsCount, setCommandsCount] = useState<number | string>('...');
   const [recentCommands, setRecentCommands] = useState<any[]>([]);
+  const [deploymentsCount, setDeploymentsCount] = useState<number | string>('...');
+  const [onlineServersCount, setOnlineServersCount] = useState<number | string>('...');
+  const [systemStats, setSystemStats] = useState({ cpu: 42, memory: 68 });
 
   useEffect(() => {
     const fetchRealData = async () => {
@@ -19,24 +22,49 @@ export default function Dashboard() {
         
         // Fetch real docker containers
         if (isAdmin) {
-          const dockerRes = await axios.get('http://52.66.209.91:3000/api/docker/containers', { headers });
+          const dockerRes = await axios.get('http://localhost:3000/api/docker/containers', { headers });
           setContainersCount(dockerRes.data.length);
         }
 
         // Fetch user's real command history
-        const historyRes = await axios.get('http://52.66.209.91:3000/api/chat/history', { headers });
+        const historyRes = await axios.get('http://localhost:3000/api/chat/history', { headers });
         const allMessages = historyRes.data;
-        // Filter out bot responses to just show user commands
-        const userCommands = allMessages.filter((msg: any) => msg.role === 'user');
-        setCommandsCount(userCommands.length);
+        setCommandsCount(allMessages.length);
         
-        // Get the 4 most recent commands for the activity feed
-        setRecentCommands(userCommands.slice(0, 4));
+        // Get the 4 most recent commands for the activity feed (reverse so newest is first)
+        const recent = allMessages.slice(-4).reverse();
+        setRecentCommands(recent);
+
+        // Fetch Jenkins Jobs to count deployments
+        try {
+          const jenkinsRes = await axios.get('http://localhost:3000/api/jenkins/jobs', { headers });
+          const successfulDeployments = jenkinsRes.data.filter((job: any) => job.status === 'success').length;
+          setDeploymentsCount(successfulDeployments);
+        } catch (e) {
+          setDeploymentsCount('0');
+        }
+
+        // Fetch System Stats
+        if (isAdmin) {
+          try {
+            const statsRes = await axios.get('http://localhost:3000/api/system/stats', { headers });
+            if (statsRes.data.cpu !== undefined) {
+              setSystemStats(statsRes.data);
+            }
+          } catch (e) {
+            console.error("Failed to load system stats", e);
+          }
+        }
+
+        // If we reached here without throwing a catastrophic error, our backend server is online!
+        setOnlineServersCount(1);
 
       } catch (error) {
         console.error("Failed to fetch dashboard data");
         setContainersCount('0');
         setCommandsCount('0');
+        setDeploymentsCount('0');
+        setOnlineServersCount(0);
       }
     };
     fetchRealData();
@@ -45,8 +73,8 @@ export default function Dashboard() {
   const stats = [
     { label: 'Commands Executed', value: commandsCount, icon: MessageSquare, color: 'text-blue-400', bg: 'bg-blue-400/10', adminOnly: false },
     { label: 'Active Containers', value: containersCount, icon: Container, color: 'text-purple-400', bg: 'bg-purple-400/10', adminOnly: true },
-    { label: 'Deployments', value: 'Coming Soon', icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10', adminOnly: false },
-    { label: 'Online Servers', value: '1', icon: Server, color: 'text-indigo-400', bg: 'bg-indigo-400/10', adminOnly: true },
+    { label: 'Deployments', value: deploymentsCount, icon: Activity, color: 'text-emerald-400', bg: 'bg-emerald-400/10', adminOnly: false },
+    { label: 'Online Servers', value: onlineServersCount, icon: Server, color: 'text-indigo-400', bg: 'bg-indigo-400/10', adminOnly: true },
   ];
 
   const visibleStats = stats.filter(s => !s.adminOnly || isAdmin);
@@ -93,10 +121,10 @@ export default function Dashboard() {
               <p className="text-slate-400 text-sm">No commands executed yet. Go to ChatOps to start!</p>
             ) : recentCommands.map((activity, idx) => (
               <div key={idx} className="flex items-center gap-4 p-3 hover:bg-slate-800/50 rounded-xl transition-colors">
-                <div className="w-2 h-2 rounded-full bg-blue-400" />
+                <div className={`w-2 h-2 rounded-full ${activity.status === 'success' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
                 <div className="flex-1">
-                  <p className="text-sm font-medium font-mono">{activity.content}</p>
-                  <p className="text-xs text-slate-400">{new Date(activity.createdAt).toLocaleString()}</p>
+                  <p className="text-sm font-medium font-mono">{activity.command}</p>
+                  <p className="text-xs text-slate-400">{new Date(activity.timestamp).toLocaleString()}</p>
                 </div>
               </div>
             ))}
@@ -110,28 +138,19 @@ export default function Dashboard() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-400">CPU Usage</span>
-                  <span className="font-medium text-blue-400">42%</span>
+                  <span className="font-medium text-blue-400">{systemStats.cpu}%</span>
                 </div>
                 <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full" style={{ width: '42%' }} />
+                  <div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: `${systemStats.cpu}%` }} />
                 </div>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-slate-400">Memory Usage</span>
-                  <span className="font-medium text-emerald-400">68%</span>
+                  <span className="font-medium text-emerald-400">{systemStats.memory}%</span>
                 </div>
                 <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: '68%' }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-slate-400">Disk Space</span>
-                  <span className="font-medium text-purple-400">85%</span>
-                </div>
-                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                  <div className="h-full bg-purple-500 rounded-full" style={{ width: '85%' }} />
+                  <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${systemStats.memory}%` }} />
                 </div>
               </div>
             </div>

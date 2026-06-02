@@ -101,11 +101,14 @@ docker ps`;
       status = 'failed';
     } else {
       const env = rawCmd.replace(/^\/?deploy\s*/i, '') || 'production';
-      responseText = `🚀 Deploying latest Docker image to '${env}' environment...`;
+      responseText = `🚀 Deploying latest code to '${env}' environment via CI/CD pipeline...`;
       try {
-        responseText += '\n' + await jenkinsService.triggerBuild(`deploy-${env}`);
+        // Trigger the actual 'ChatOps' Jenkins job which now has the deploy stage!
+        const result = await jenkinsService.triggerBuild('ChatOps');
+        responseText += `\n✅ ${result}`;
       } catch (error: any) {
-        responseText += `\n[NOTE] Jenkins job 'deploy-${env}' not found, simulation mode only.`;
+        responseText += `\n❌ Deployment Failed: ${error.message}`;
+        status = 'failed';
       }
     }
   }
@@ -169,11 +172,6 @@ docker ps`;
         status = 'failed';
       }
     }
-  }
-
-  // AI FAILURE ANALYSIS
-  else if (cmd.includes('why') && cmd.includes('failed')) {
-    responseText = `[AI Analysis] The build failed due to a missing dependency. Please verify installed packages and rebuild.`;
   }
 
   // UNKNOWN COMMAND

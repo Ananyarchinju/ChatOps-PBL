@@ -27,7 +27,7 @@ export default function Settings() {
     setLoading(true);
 
     try {
-      const response = await axios.put('http://52.66.209.91:3000/api/auth/profile', 
+      const response = await axios.put('http://localhost:3000/api/auth/profile', 
         { name, password: newPassword || undefined },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -203,7 +203,7 @@ export default function Settings() {
                 </div>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-500/10 text-green-500 border border-green-500/20">CONNECTED</span>
               </div>
-              <p className="text-slate-400 text-xs font-mono bg-black/20 p-2 rounded">TOKEN: ************************34FA</p>
+              <p className="text-slate-400 text-xs font-mono bg-black/20 p-2 rounded">Configured securely via server environment variables.</p>
             </div>
           </div>
         </section>

@@ -85,13 +85,24 @@ export class DockerService {
   public async getContainerLogs(id: string): Promise<string> {
     try {
       const container = this.docker.getContainer(id);
-      const logs = await container.logs({
+      const buffer = await container.logs({
         stdout: true,
         stderr: true,
         tail: 50,
         timestamps: false
-      });
-      return logs.toString('utf8');
+      }) as Buffer;
+
+      // Docker multiplexes stdout and stderr streams with an 8-byte header per frame.
+      // Header: [8 bytes] -> type (1 byte), reserved (3 bytes), size (4 bytes BigEndian)
+      let result = '';
+      let i = 0;
+      while (i < buffer.length) {
+        if (i + 8 > buffer.length) break;
+        const size = buffer.readUInt32BE(i + 4);
+        result += buffer.toString('utf8', i + 8, i + 8 + size);
+        i += 8 + size;
+      }
+      return result;
     } catch (error: any) {
       throw new Error(`Failed to fetch logs for container ${id}: ${error.message}`);
     }
