@@ -1,10 +1,11 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticateToken } from '../middleware/authMiddleware';
 import { jenkinsService } from '../services/JenkinsService';
 
 const router = Router();
 
-router.get('/jobs', authenticateToken, async (req, res) => {
+// Get all Jenkins jobs
+router.get('/jobs', authenticateToken, async (req: Request, res: Response) => {
   try {
     const jobs = await jenkinsService.getJobs();
     res.json(jobs);
@@ -13,13 +14,22 @@ router.get('/jobs', authenticateToken, async (req, res) => {
   }
 });
 
-router.post('/build/:jobName', authenticateToken, async (req, res) => {
+// Trigger Jenkins build
+router.post('/build/:jobName', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const jobName = req.params.jobName;
+    const jobName: string = String(req.params.jobName);
+
     const result = await jenkinsService.triggerBuild(jobName);
-    res.json({ message: result });
+
+    res.json({
+      success: true,
+      message: result,
+    });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 
