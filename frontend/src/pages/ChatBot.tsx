@@ -45,11 +45,7 @@ export default function ChatBot() {
           historyMessages.push({
             id: item.id + '-b',
             role: 'bot',
-            content: (
-              <div className="font-mono text-sm whitespace-pre-wrap">
-                {item.output}
-              </div>
-            ),
+            content: renderResponse(String(item.output)),
             timestamp: new Date(item.timestamp)
           });
         }
@@ -74,6 +70,27 @@ export default function ChatBot() {
     }).catch(err => console.error("Failed to load history", err));
   }, [token, location.state]);
 
+  const renderResponse = (text: string) => {
+    const isoRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g;
+    const parts: Array<string | JSX.Element> = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = isoRegex.exec(text)) !== null) {
+      const idx = match.index;
+      if (idx > lastIndex) parts.push(text.slice(lastIndex, idx));
+      const iso = match[0];
+      const local = new Date(iso).toLocaleString();
+      parts.push(<strong key={iso + idx}>{local}</strong>);
+      lastIndex = isoRegex.lastIndex;
+    }
+    if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+    return (
+      <div className="font-mono text-sm whitespace-pre-wrap">
+        {parts.map((p, i) => typeof p === 'string' ? <span key={i}>{p}</span> : p)}
+      </div>
+    );
+  };
+
   const executeCommand = async (commandToRun: string, currentMessages: Message[]) => {
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: commandToRun, timestamp: new Date() };
     const newMessages = [...currentMessages, userMsg];
@@ -86,11 +103,7 @@ export default function ChatBot() {
       setMessages([...newMessages, {
         id: (Date.now() + 1).toString(),
         role: 'bot',
-        content: (
-          <div className="font-mono text-sm whitespace-pre-wrap">
-            {res.data.response}
-          </div>
-        ),
+        content: renderResponse(String(res.data.response || '')),
         timestamp: new Date()
       }]);
     } catch (error) {

@@ -152,12 +152,8 @@ docker ps`;
       responseText = `🐙 Fetching latest commit from GitHub...`;
       const ghRes = await axios.get('https://api.github.com/repos/Ananyarchinju/ChatOps-PBL/commits');
       const latest = ghRes.data[0];
-      responseText = `✅ **Latest Commit in ChatOps-PBL**
-**Author:** ${latest.commit.author.name}
-**Date:** ${new Date(latest.commit.author.date).toLocaleString()}
-**Message:** ${latest.commit.message}
-**SHA:** ${latest.sha.substring(0, 7)}
-**Link:** ${latest.html_url}`;
+      // send ISO timestamp so the client (browser) can render it in the user's local timezone
+      responseText = `✅ Latest Commit in ChatOps-PBL\nAuthor: ${latest.commit.author.name}\nDate (ISO): ${latest.commit.author.date}\nDate (UTC): ${new Date(latest.commit.author.date).toUTCString()}\nMessage: ${latest.commit.message}\nSHA: ${latest.sha.substring(0, 7)}\nLink: ${latest.html_url}`;
     } catch (error: any) {
       responseText = `[ERROR] Failed to fetch GitHub data: ${error.message}`;
       status = 'failed';
