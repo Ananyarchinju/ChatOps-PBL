@@ -14,7 +14,7 @@ import bcrypt from 'bcryptjs';
 import { startSlackBot } from './slack';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 4000; // Hardcoded to 4000 to free up 3000 for Jenkins deployments
 
 app.use(cors());
 app.use(express.json());
@@ -43,12 +43,12 @@ async function seedDatabase() {
   });
 
   await prisma.user.upsert({
-    where: { email: 'dev@chatops.local' },
+    where: { email: 'user@chatops.local' },
     update: {},
     create: {
-      email: 'dev@chatops.local',
+      email: 'user@chatops.local',
       password: await bcrypt.hash('password123', 10),
-      name: 'Developer User',
+      name: 'Standard User',
       role: 'user'
     }
   });

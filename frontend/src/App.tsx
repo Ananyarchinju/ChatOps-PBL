@@ -9,6 +9,7 @@ import DockerPanel from './pages/DockerPanel';
 import MonitoringPanel from './pages/MonitoringPanel';
 import Logs from './pages/Logs';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 
@@ -60,6 +61,7 @@ function App() {
                   <Settings />
                 </ProtectedRoute>
               } />
+              <Route path="profile" element={<Profile />} />
             </Route>
           </Routes>
         </BrowserRouter>

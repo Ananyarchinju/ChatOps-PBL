@@ -3,6 +3,7 @@ import { Send, Bot, User, Command } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { useLocation } from 'react-router-dom';
 
 type Message = {
   id: string;
@@ -13,6 +14,7 @@ type Message = {
 
 export default function ChatBot() {
   const { token } = useAuth();
+  const location = useLocation();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -28,7 +30,7 @@ export default function ChatBot() {
   useEffect(() => {
     if (!token) return;
     
-    axios.get('http://localhost:3000/api/chat/history', {
+    axios.get('/api/chat/history', {
       headers: { Authorization: `Bearer ${token}` }
     }).then(res => {
       const historyMessages: Message[] = [];
@@ -62,23 +64,26 @@ export default function ChatBot() {
         });
       }
       setMessages(historyMessages);
+
+      // Auto-execute command if passed from Dashboard
+      if (location.state && location.state.autoCommand) {
+        executeCommand(location.state.autoCommand, historyMessages);
+        // Clear the state so it doesn't re-run if they refresh
+        window.history.replaceState({}, document.title);
+      }
     }).catch(err => console.error("Failed to load history", err));
-  }, [token]);
+  }, [token, location.state]);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input, timestamp: new Date() };
-    setMessages(prev => [...prev, userMsg]);
-    const currentInput = input;
-    setInput('');
+  const executeCommand = async (commandToRun: string, currentMessages: Message[]) => {
+    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: commandToRun, timestamp: new Date() };
+    const newMessages = [...currentMessages, userMsg];
+    setMessages(newMessages);
 
     try {
-      const res = await axios.post('http://localhost:3000/api/chat/command', { command: currentInput }, {
+      const res = await axios.post('/api/chat/command', { command: commandToRun }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMessages(prev => [...prev, {
+      setMessages([...newMessages, {
         id: (Date.now() + 1).toString(),
         role: 'bot',
         content: (
@@ -89,13 +94,22 @@ export default function ChatBot() {
         timestamp: new Date()
       }]);
     } catch (error) {
-      setMessages(prev => [...prev, {
+      setMessages([...newMessages, {
         id: (Date.now() + 1).toString(),
         role: 'bot',
         content: 'Error connecting to ChatOps backend.',
         timestamp: new Date()
       }]);
     }
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const currentInput = input;
+    setInput('');
+    executeCommand(currentInput, messages);
   };
 
   return (
@@ -163,7 +177,7 @@ export default function ChatBot() {
           </form>
           <div className="mt-2 flex gap-2 overflow-x-auto pb-1 text-xs text-slate-400 scrollbar-hide">
             <span className="shrink-0 font-medium mr-1">Suggestions:</span>
-            {['/build frontend', '/deploy prod', '/status', '/logs backend', '/docker ps'].map(cmd => (
+            {['/help', '/status', '/build ChatOps', '/docker ps'].map(cmd => (
               <button 
                 key={cmd} 
                 onClick={() => setInput(cmd)}

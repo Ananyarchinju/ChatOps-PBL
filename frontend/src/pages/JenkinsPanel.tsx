@@ -11,7 +11,7 @@ export default function JenkinsPanel() {
   const fetchJobs = async () => {
     try {
       const token = localStorage.getItem('chatops_token');
-      const res = await axios.get('http://localhost:3000/api/jenkins/jobs', {
+      const res = await axios.get('/api/jenkins/jobs', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBuilds(res.data);
@@ -24,6 +24,9 @@ export default function JenkinsPanel() {
 
   useEffect(() => {
     fetchJobs();
+    // Auto-refresh jobs every 5 seconds to see live status changes
+    const interval = setInterval(fetchJobs, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleTriggerBuild = async () => {
@@ -32,7 +35,7 @@ export default function JenkinsPanel() {
 
     try {
       const token = localStorage.getItem('chatops_token');
-      await axios.post(`http://localhost:3000/api/jenkins/build/${encodeURIComponent(jobName)}`, {}, {
+      await axios.post(`/api/jenkins/build/${encodeURIComponent(jobName)}`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert(`Successfully triggered build for job '${jobName}'`);

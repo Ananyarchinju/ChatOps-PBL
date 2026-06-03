@@ -4,6 +4,7 @@ import { prisma } from '../db';
 import { jenkinsService } from '../services/JenkinsService';
 import { dockerService } from '../services/DockerService';
 import { chatCommandCounter } from './metrics';
+import axios from 'axios';
 
 const router = Router();
 
@@ -58,7 +59,11 @@ router.post('/command', authenticateToken, async (req: AuthRequest, res) => {
 /deploy <environment> → Deploy application
 
 📜 Logs
-/logs → View recent logs
+/logs <container-id> → View docker logs
+/logs jenkins → View last Jenkins build logs
+
+🐙 GitHub
+/github → View latest commit details
 
 💡 Example Commands:
 status
@@ -117,8 +122,19 @@ docker ps`;
   else if (cmd.startsWith('/logs') || cmd.startsWith('logs ')) {
     const targetId = rawCmd.replace(/^\/?logs\s*/i, '').trim();
     if (!targetId || targetId === '/logs' || targetId === 'logs') {
-      responseText = `[ERROR] Please provide a container ID. Example: /logs <container-id>`;
+      responseText = `[ERROR] Please provide a target. Example: /logs <container-id> or /logs jenkins`;
       status = 'failed';
+    } else if (targetId.toLowerCase() === 'jenkins') {
+      try {
+        responseText = await jenkinsService.getLatestBuildLogs('ChatOps');
+        // Truncate if too long (keep last 2000 chars)
+        if (responseText.length > 2000) {
+          responseText = `...[TRUNCATED]\n` + responseText.substring(responseText.length - 2000);
+        }
+      } catch (error: any) {
+        responseText = `[ERROR] ${error.message}`;
+        status = 'failed';
+      }
     } else {
       try {
         responseText = await dockerService.getContainerLogs(targetId);
@@ -127,6 +143,24 @@ docker ps`;
         responseText = `[ERROR] ${error.message}`;
         status = 'failed';
       }
+    }
+  }
+
+  // GITHUB
+  else if (cmd.startsWith('/github') || cmd === 'github') {
+    try {
+      responseText = `🐙 Fetching latest commit from GitHub...`;
+      const ghRes = await axios.get('https://api.github.com/repos/Ananyarchinju/ChatOps-PBL/commits');
+      const latest = ghRes.data[0];
+      responseText = `✅ **Latest Commit in ChatOps-PBL**
+**Author:** ${latest.commit.author.name}
+**Date:** ${new Date(latest.commit.author.date).toLocaleString()}
+**Message:** ${latest.commit.message}
+**SHA:** ${latest.sha.substring(0, 7)}
+**Link:** ${latest.html_url}`;
+    } catch (error: any) {
+      responseText = `[ERROR] Failed to fetch GitHub data: ${error.message}`;
+      status = 'failed';
     }
   }
 

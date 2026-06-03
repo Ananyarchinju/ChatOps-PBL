@@ -1,12 +1,14 @@
-import { Activity, Container, GitPullRequest, Server, ShieldAlert, MessageSquare } from 'lucide-react';
+import { Activity, Container, GitPullRequest, Server, ShieldAlert, MessageSquare, Terminal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
+  const navigate = useNavigate();
   const [containersCount, setContainersCount] = useState<number | string>('...');
   const [commandsCount, setCommandsCount] = useState<number | string>('...');
   const [recentCommands, setRecentCommands] = useState<any[]>([]);
@@ -22,12 +24,12 @@ export default function Dashboard() {
         
         // Fetch real docker containers
         if (isAdmin) {
-          const dockerRes = await axios.get('http://localhost:3000/api/docker/containers', { headers });
+          const dockerRes = await axios.get('/api/docker/containers', { headers });
           setContainersCount(dockerRes.data.length);
         }
 
         // Fetch user's real command history
-        const historyRes = await axios.get('http://localhost:3000/api/chat/history', { headers });
+        const historyRes = await axios.get('/api/chat/history', { headers });
         const allMessages = historyRes.data;
         setCommandsCount(allMessages.length);
         
@@ -37,7 +39,7 @@ export default function Dashboard() {
 
         // Fetch Jenkins Jobs to count deployments
         try {
-          const jenkinsRes = await axios.get('http://localhost:3000/api/jenkins/jobs', { headers });
+          const jenkinsRes = await axios.get('/api/jenkins/jobs', { headers });
           const successfulDeployments = jenkinsRes.data.filter((job: any) => job.status === 'success').length;
           setDeploymentsCount(successfulDeployments);
         } catch (e) {
@@ -47,7 +49,7 @@ export default function Dashboard() {
         // Fetch System Stats
         if (isAdmin) {
           try {
-            const statsRes = await axios.get('http://localhost:3000/api/system/stats', { headers });
+            const statsRes = await axios.get('/api/system/stats', { headers });
             if (statsRes.data.cpu !== undefined) {
               setSystemStats(statsRes.data);
             }
@@ -79,11 +81,16 @@ export default function Dashboard() {
 
   const visibleStats = stats.filter(s => !s.adminOnly || isAdmin);
 
+  const userRank = commandsCount === '...' ? '' : (commandsCount as number) < 5 ? 'Junior Operator' : (commandsCount as number) < 20 ? 'Senior Operator' : 'ChatOps Commander';
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            Dashboard 
+            {!isAdmin && userRank && <span className="px-3 py-1 bg-blue-500/20 text-blue-400 text-sm rounded-full font-medium border border-blue-500/30">{userRank}</span>}
+          </h1>
           <p className="text-slate-400 mt-1">Welcome back, {user?.name}</p>
         </div>
         <div className="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-sm font-medium flex items-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
@@ -92,7 +99,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className={`grid grid-cols-1 md:grid-cols-2 ${visibleStats.length <= 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-6`}>
         {visibleStats.map((stat, idx) => (
           <motion.div
             key={stat.label}
@@ -113,7 +120,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : ''} gap-6 mt-8`}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
         <div className="glass-panel rounded-2xl p-6">
           <h2 className="text-xl font-semibold mb-4">Recent Commands</h2>
           <div className="space-y-4">
@@ -131,7 +138,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {isAdmin && (
+        {isAdmin ? (
           <div className="glass-panel rounded-2xl p-6">
             <h2 className="text-xl font-semibold mb-4">System Load</h2>
             <div className="space-y-6">
@@ -153,6 +160,27 @@ export default function Dashboard() {
                   <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: `${systemStats.memory}%` }} />
                 </div>
               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="glass-panel rounded-2xl p-6 flex flex-col">
+            <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+               <button onClick={() => navigate('/chat')} className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition-all text-left flex flex-col gap-2">
+                 <Terminal className="w-5 h-5 text-blue-400" />
+                 <span className="font-semibold text-slate-200">Open Terminal</span>
+                 <span className="text-xs text-slate-400">Launch the ChatOps CLI to interact with the bot</span>
+               </button>
+               <button onClick={() => navigate('/chat', { state: { autoCommand: '/status' } })} className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-all text-left flex flex-col gap-2">
+                 <Activity className="w-5 h-5 text-emerald-400" />
+                 <span className="font-semibold text-slate-200">Check Status</span>
+                 <span className="text-xs text-slate-400">Run /status to view system health</span>
+               </button>
+               <button onClick={() => navigate('/chat', { state: { autoCommand: '/help' } })} className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl hover:bg-purple-500/20 transition-all text-left flex flex-col gap-2 sm:col-span-2">
+                 <MessageSquare className="w-5 h-5 text-purple-400" />
+                 <span className="font-semibold text-slate-200">Help & Commands</span>
+                 <span className="text-xs text-slate-400">Run /help to see all available commands you have access to</span>
+               </button>
             </div>
           </div>
         )}

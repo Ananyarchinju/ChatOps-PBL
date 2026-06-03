@@ -27,7 +27,7 @@ export default function Settings() {
     setLoading(true);
 
     try {
-      const response = await axios.put('http://localhost:3000/api/auth/profile', 
+      const response = await axios.put('/api/auth/profile', 
         { name, password: newPassword || undefined },
         { headers: { Authorization: `Bearer ${token}` } }
       );

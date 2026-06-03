@@ -7,9 +7,12 @@ const router = Router();
 // Get all Jenkins jobs
 router.get('/jobs', authenticateToken, async (req: Request, res: Response) => {
   try {
+    console.log("API /jobs called. ENV URL:", process.env.JENKINS_URL);
     const jobs = await jenkinsService.getJobs();
+    console.log("API /jobs returning count:", jobs.length);
     res.json(jobs);
   } catch (error: any) {
+    console.error("API /jobs error:", error.message);
     res.status(500).json({ error: error.message });
   }
 });

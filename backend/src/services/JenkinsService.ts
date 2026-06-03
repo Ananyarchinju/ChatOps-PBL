@@ -1,18 +1,16 @@
 import axios from 'axios';
 
 export class JenkinsService {
-  private url: string;
-  private user: string;
-  private token: string;
-  private authHeader: string;
+  private get url(): string { return process.env.JENKINS_URL || ''; }
+  private get user(): string { return process.env.JENKINS_USER || ''; }
+  private get token(): string { return process.env.JENKINS_TOKEN || ''; }
+  private get authHeader(): string {
+    const credentials = Buffer.from(`${this.user}:${this.token}`).toString('base64');
+    return `Basic ${credentials}`;
+  }
 
   constructor() {
-    this.url = process.env.JENKINS_URL || '';
-    this.user = process.env.JENKINS_USER || '';
-    this.token = process.env.JENKINS_TOKEN || '';
-
-    const credentials = Buffer.from(`${this.user}:${this.token}`).toString('base64');
-    this.authHeader = `Basic ${credentials}`;
+    // Environment variables are now read dynamically via getters to avoid hoisting issues
   }
 
   /**
@@ -113,6 +111,28 @@ export class JenkinsService {
     } catch (error) {
       console.error("Failed to fetch Jenkins jobs", error);
       return [];
+    }
+  }
+
+  /**
+   * Fetches the raw console text logs for the latest build of a specific job.
+   */
+  public async getLatestBuildLogs(jobName: string): Promise<string> {
+    if (!this.url || !this.user || !this.token) {
+      throw new Error("Jenkins credentials are not configured.");
+    }
+    try {
+      const response = await axios.get(`${this.url}/job/${encodeURIComponent(jobName)}/lastBuild/consoleText`, {
+        headers: {
+          'Authorization': this.authHeader
+        }
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.status === 404) {
+        throw new Error(`Logs not found for job '${jobName}'. It may not have been built yet.`);
+      }
+      throw new Error(`Failed to fetch logs for Jenkins job '${jobName}': ${error.message}`);
     }
   }
 }

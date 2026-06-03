@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Terminal, Server, Container, Activity, ScrollText, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Terminal, Server, Container, Activity, Settings, LogOut, User } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,8 +8,8 @@ const navItems = [
   { icon: Terminal, label: 'ChatOps', path: '/chat', requireAdmin: false },
   { icon: Server, label: 'Jenkins', path: '/jenkins', requireAdmin: true },
   { icon: Container, label: 'Docker', path: '/docker', requireAdmin: true },
-  { icon: Activity, label: 'Monitoring', path: '/monitoring', requireAdmin: false },
-  { icon: ScrollText, label: 'Logs', path: '/logs', requireAdmin: false },
+  { icon: Activity, label: 'Monitoring', path: '/monitoring', requireAdmin: true },
+  { icon: User, label: 'Profile', path: '/profile', requireAdmin: false },
   { icon: Settings, label: 'Settings', path: '/settings', requireAdmin: true },
 ];
 

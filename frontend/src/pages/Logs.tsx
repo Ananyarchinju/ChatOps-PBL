@@ -20,7 +20,7 @@ export default function Logs() {
     const fetchContainers = async () => {
       try {
         const token = localStorage.getItem('chatops_token');
-        const res = await axios.get('http://localhost:3000/api/docker/containers', {
+        const res = await axios.get('/api/docker/containers', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setContainers(res.data);
@@ -41,7 +41,7 @@ export default function Logs() {
     const fetchLogs = async () => {
       try {
         const token = localStorage.getItem('chatops_token');
-        const res = await axios.get(`http://localhost:3000/api/docker/logs/${selectedContainer}`, {
+        const res = await axios.get(`/api/docker/logs/${selectedContainer}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
